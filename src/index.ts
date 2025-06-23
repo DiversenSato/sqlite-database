@@ -68,6 +68,15 @@ export class SqliteDatabase {
         });
     }
 
+    /**
+     * Runs a SQL query against the database.
+     * 
+     * Use {@link SqliteDatabase.all} or {@link SqliteDatabase.get} for SELECT queries.
+     * 
+     * @param sql The SQL query to run
+     * @param params Optional array of parameters to bind to the query
+     * @returns {@link RunResult} An object containing the last inserted ID and the number of changes made by the query
+     */
     run(sql: string, params?: DataValue[]): Promise<RunResult> {
         return new Promise((resolve, reject) => {
             this.con.run(sql, params, function (err: Error | null) {
@@ -78,6 +87,12 @@ export class SqliteDatabase {
         });
     }
 
+    /**
+     * Get a single row from the database.
+     * @param sql The SQL query to execute
+     * @param params Optional array of parameters to bind to the query
+     * @returns `unknown` | `null` The first row of the result set, or `null` if no rows were returned
+     */
     get<T = unknown>(sql: string, params?: DataValue[]): Promise<T | null> {
         return new Promise((resolve, reject) => {
             this.con.get(sql, params, (err: Error | null, row: T | null) => {
@@ -88,6 +103,12 @@ export class SqliteDatabase {
         });
     }
 
+    /**
+     * Get all rows the query returns.
+     * @param sql The SQL query to execute
+     * @param params Optional array of parameters to bind to the query
+     * @returns `unknown[]` | `T[]` An array of rows returned by the query, or an empty array if no rows were returned
+     */
     all<T = unknown>(sql: string, params?: DataValue[]): Promise<T[]> {
         return new Promise((resolve, reject) => {
             this.con.all(sql, params, (err: Error | null, rows: T[]) => {
@@ -98,6 +119,13 @@ export class SqliteDatabase {
         });
     }
 
+    /**
+     * Run a callback for each row returned by the query.
+     * @param sql The SQL query to execute
+     * @param params Array of parameters to bind to the query. Use an empty array if no parameters are needed.
+     * @param callback A callback function that will be called for each row returned by the query.
+     * @returns `void`
+     */
     each<T = unknown>(sql: string, params: DataValue[], callback: (row: T) => void): Promise<void> {
         return new Promise((resolve, reject) => {
             this.con.each(sql, params, (err: Error | null, row: T) => {
@@ -111,30 +139,90 @@ export class SqliteDatabase {
         });
     }
 
+    /**
+     * UNSAFE: This method does not escape the table name, which can lead to SQL injection vulnerabilities.
+     * 
+     * Renames an existing table.
+     * Shorthand for `ALTER TABLE <tableName> RENAME TO <newTableName>`.
+     * 
+     * @param tableName The name of the table to rename
+     * @param newTableName The new name for the table
+     */
     async renameTable(tableName: string, newTableName: string) {
         await this.run(`ALTER TABLE ${tableName} RENAME TO ${newTableName};`);
     }
 
+    /**
+     * UNSAFE: This method does not escape the table- or column name, which can lead to SQL injection vulnerabilities.
+     * 
+     * Renames a column in an existing table.
+     * Shorthand for `ALTER TABLE <tableName> RENAME COLUMN <columnName> TO <newColumnName>`.
+     * 
+     * @param tableName The name of the table containing the column to rename
+     * @param columnName The name of the column to rename
+     * @param newColumnName The new name for the column
+     */
     async renameColumn(tableName: string, columnName: string, newColumnName: string) {
         await this.run(`ALTER TABLE ${tableName} RENAME COLUMN ${columnName} TO ${newColumnName};`);
     }
 
-    async addColumn(tableName: string, columnName: string, options: ColumnCreationOptions) {
+    /**
+     * UNSAFE: This method does not escape the table- or column name, which can lead to SQL injection vulnerabilities.
+     * 
+     * Adds a new column to an existing table.
+     * 
+     * @param tableName The table to add the column to
+     * @param columnName The name of the column to add
+     * @param options Creation options for the column. Interface: {@link ColumnCreationOptions}
+     */
+    async addColumn(tableName: string, columnName: string, options: Omit<ColumnCreationOptions, 'primaryKey'>) {
         await this.run(`ALTER TABLE ${tableName} ADD ${this.createColumnDefinition(columnName, options)}`);
     }
 
+    /**
+     * UNSAFE: This method does not escape the table- or column name, which can lead to SQL injection vulnerabilities.
+     * 
+     * Drops a column from a table.
+     * Shorthand for `ALTER TABLE <tableName> DROP <columnName>`.
+     * 
+     * @param tableName The name of the table from which to drop the column
+     * @param columnName The name of the column to drop
+     */
     async dropColumn(tableName: string, columnName: string) {
         await this.run(`ALTER TABLE ${tableName} DROP ${columnName};`);
     }
 
+    /**
+     * Lists all tables in the database.
+     * Shorthand for `PRAGMA table_list;`.
+     * 
+     * @returns An array of {@link PragmaTable} objects, each representing a table in the database
+     */
     async listTables(): Promise<PragmaTable[]> {
         return await this.all('PRAGMA table_list;');
     }
 
+    /**
+     * UNSAFE: This method does not escape the table name, which can lead to SQL injection vulnerabilities.
+     * 
+     * Retrieves information about the columns in a specified table.
+     * Shorthand for `PRAGMA table_info(<tableName>)`.
+     * 
+     * @param tableName The name of the table to get information about
+     * @returns An array of {@link ColumnInfo} objects, each representing a column in the table
+     */
     async tableInfo(tableName: string): Promise<ColumnInfo[]> {
         return this.all(`PRAGMA table_info(${tableName});`);
     }
 
+    /**
+     * UNSAFE: This method does not escape the table name, which can lead to SQL injection vulnerabilities.
+     * 
+     * Drops a table from the database.
+     * Shorthand for `DROP TABLE <tableName>`.
+     * 
+     * @param tableName The name of the table to drop
+     */
     async dropTable(tableName: string) {
         await this.run(`DROP TABLE ${tableName};`);
     }
@@ -148,6 +236,25 @@ export class SqliteDatabase {
         return sql;
     }
 
+    /**
+     * 
+     * @example
+     * ```typescript
+     * await db.createTable('Users', {
+     *   id: {
+     *     type: DataTypes.INTEGER,
+     *     primaryKey: true,
+     *     autoIncrement: true,
+     *   },
+     *   name: {
+     *     type: DataTypes.TEXT,
+     *     allowNull: false,
+     *   },
+     * });
+     * ```
+     * @param tableName The name of the table to create
+     * @param options {@link TableCreationOptions} The options for the table creation, including column definitions
+     */
     async createTable(tableName: string, options: TableCreationOptions) {
         const existingTables = await this.listTables();
         if (existingTables.some(table => table.name === tableName)) {
