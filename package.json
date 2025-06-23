@@ -1,0 +1,32 @@
+{
+  "name": "sqlite-database",
+  "version": "1.0.0",
+  "description": "Promise-based sqlite client written in TypeScript",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prebuild": "rimraf lib",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DiversenSato/sqlite-database.git"
+  },
+  "keywords": [
+    "sqlite"
+  ],
+  "author": "Diversensato (diversensato@gmail.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DiversenSato/sqlite-database/issues"
+  },
+  "homepage": "https://github.com/DiversenSato/sqlite-database#readme",
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
+  }
+}
