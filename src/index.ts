@@ -273,4 +273,17 @@ export class SqliteDatabase {
 
         await this.run(`CREATE TABLE ${tableName} (${columns.join(', ')});`);
     }
+
+    /**
+     * Closes the database connection.
+     * @returns `void`
+     */
+    async close() {
+        return new Promise<void>((resolve, reject) => {
+            this.con.close((err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+    }
 }
